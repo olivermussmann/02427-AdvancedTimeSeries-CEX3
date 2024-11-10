@@ -1,0 +1,343 @@
+clc; clear; close all;
+
+% Parameters
+theta1 = 0.7;
+theta2 = 0.8;
+theta3 = 3.0;
+theta4 = -0.34;
+sigma_values = [0, 0.10, 0.20, 0.30, 0.40]; % Different noise levels
+delta1 = 2^(-9); % Time step
+T = 100; % Total simulation time
+N = T / delta1; % Number of steps
+initial_conditions = [-1.9; 1.2]; % Initial conditions Y1_0 and Y2_0
+time_vector = linspace(0, T, N+1);
+rng(2) % For reproduction
+
+% ---------------------- equilibrium point --------------------------------
+
+% Initial guess for [x1, x2]
+x0 = [0, 0];
+
+% Define the system of equationsPart 1a
+equations = @(x) [
+    theta3 * (x(1) + x(2) - (1/3) * x(1)^3 + theta4);
+    - (1/theta3) * (x(1) + theta2 * x(2) - theta1)
+];
+
+% Solve the system using fsolve
+options = optimoptions('fsolve', 'Display', 'off'); % Suppress output
+[x_eq, ~, exitflag] = fsolve(equations, x0, options);
+
+% Check if a solution was found
+if exitflag > 0
+    x1_eq = x_eq(1);
+    x2_eq = x_eq(2);
+    fprintf('Equilibrium point found:\n');
+    fprintf('x1 = %.4f\n', x1_eq);
+    fprintf('x2 = %.4f\n', x2_eq);
+else
+    disp('No equilibrium point found.');
+end
+
+
+% ----------------------------- Part 1a -----------------------------------
+
+% Storage for results
+Y1 = zeros(N+1, length(sigma_values));
+Y2 = zeros(N+1, length(sigma_values));
+
+% Simulate for each noise level
+for j = 1:length(sigma_values)
+    sigma = sigma_values(j);
+    Y = initial_conditions;
+    Y1(:, j) = Y(1);
+    Y2(:, j) = Y(2);
+    
+    % Iterative simulation using Euler-Maruyama method
+    for n = 1:N
+        dW = sqrt(delta1) * randn; % Increment for Wiener process
+        
+        % Equations (3a) and (3b) for Euler-Maruyama approximation
+        Y1(n+1, j) = Y1(n, j) + theta3 * (Y1(n, j) + Y2(n, j) - (1/3) * (Y1(n, j))^3 + theta4) * delta1 + sigma * dW;
+        Y2(n+1, j) = Y2(n, j) - (1/theta3) * (Y1(n, j) + theta2 * Y2(n, j) - theta1) * delta1;
+    end
+end
+
+% Plot results for each noise level in a more compact layout
+figure('Position', [700, 400, 800, 1000]);
+
+% Using tiledlayout for better control over spacing
+t = tiledlayout(length(sigma_values), 1, 'TileSpacing', 'compact', 'Padding', 'compact');
+
+for j = 1:length(sigma_values)
+    nexttile;
+    if j == length(sigma_values)
+        hold on
+        plot(time_vector, Y1(:, j), 'Color', 'k', 'DisplayName', 'Y1')
+        plot(time_vector, Y2(:, j), 'Color', 'r', 'DisplayName', 'Y2');
+        title(['\sigma = ', num2str(sigma_values(j))]);
+        xlabel('Time', 'FontSize',13, 'FontWeight','bold');
+        ylabel('Y1', 'FontSize',13, 'FontWeight','bold');
+        ylim([-4 4])
+        set(gca, 'FontSize',13, 'FontWeight','bold')
+    else
+        hold on
+        plot(time_vector, Y1(:, j), 'Color', 'k', 'DisplayName', 'Y1');
+        plot(time_vector, Y2(:, j), 'Color', 'r', 'DisplayName', 'Y2');
+        title(['\sigma = ', num2str(sigma_values(j))]);
+        ylabel('Y1', 'FontSize',13, 'FontWeight','bold');
+        ylim([-4 4])
+        set(gca, 'FontSize',13, 'FontWeight','bold')
+        if j == 1
+            legend('show', 'NumColumns', 2, 'Location', 'southeast')
+        end
+
+    end
+    
+
+end
+
+
+
+% Phase plot of (Y1, Y2) for each noise level in a compact 3x2 layout
+figure('Position', [700, 400, 800, 1000]);
+
+% Use tiledlayout for control over layout and spacing
+t = tiledlayout(3, 2, 'TileSpacing', 'compact', 'Padding', 'compact');
+
+% Create a joined plot for the first sigma (sigma = 0) in the first two tiles
+nexttile([1 2]); % Span the first two tiles horizontally
+hold on
+plot(Y1(:, 1), Y2(:, 1), 'k');
+title(['\sigma = ', num2str(sigma_values(1))]);
+xlabel('Y1', 'FontSize',13, 'FontWeight','bold');
+ylabel('Y2', 'FontSize',13, 'FontWeight','bold');
+set(gca, 'FontSize',13, 'FontWeight','bold')
+
+% Plot the remaining phase plots in the next available tiles
+for j = 2:length(sigma_values)
+    nexttile; % Move to the next tile in the 3x2 layout
+    hold on
+    plot(Y1(:, j), Y2(:, j), 'k');
+    title(['\sigma = ', num2str(sigma_values(j))]);
+    xlabel('Y1', 'FontSize',13, 'FontWeight','bold');
+    ylabel('Y2', 'FontSize',13, 'FontWeight','bold');
+    set(gca, 'FontSize',13, 'FontWeight','bold')
+end
+
+% ----------------------------- Part 1b -----------------------------------
+
+% Parameters for Question 1b
+sigma_values_b = [0.10, 0.20, 0.30, 0.40];
+num_bins = 100; % 100x100 cells for 2D histogram
+
+
+for j = 1:length(sigma_values_b)
+    sigma = sigma_values_b(j);
+    Y = initial_conditions;
+    Y1_hist = zeros(N+1, 1);
+    Y2_hist = zeros(N+1, 1);
+
+    % Reuse simulated data for current sigma
+    Y1_hist(:, j) = Y1(:, j);
+    Y2_hist(:, j) = Y2(:, j);
+end
+
+% Parameters for Question 1b
+sigma_values_b = [0.10, 0.20, 0.30, 0.40];
+num_bins = 100; % 100x100 cells for 2D histogram
+
+% Create a figure with tiled layout
+figure('Position', [700, 400, 800, 1000]);
+t = tiledlayout(length(sigma_values_b), 2, 'TileSpacing', 'compact', 'Padding', 'compact');
+
+for j = 1:length(sigma_values_b)
+    sigma = sigma_values_b(j);
+    
+    % Use simulated data for current sigma (replace with actual data if needed)
+    Y1_hist = Y1(:, j);
+    Y2_hist = Y2(:, j);
+    
+    % Define bin edges based on the range of the data
+    edgesX = linspace(min(Y1_hist), max(Y1_hist), num_bins + 1);
+    edgesY = linspace(min(Y2_hist), max(Y2_hist), num_bins + 1);
+
+    % Compute histogram counts with histcounts2
+    [counts, ~, ~] = histcounts2(Y1_hist, Y2_hist, edgesX, edgesY);
+
+    % 2D view of the histogram
+    nexttile;
+    hold on
+    histogram2('XBinEdges', edgesX, 'YBinEdges', edgesY, 'BinCounts', counts, ...
+               'FaceColor', 'flat');
+
+    
+    % Get histogram base coordinates and plot grey patch
+    baseX = [min(edgesX), max(edgesX), max(edgesX), min(edgesX)];
+    baseY = [min(edgesY), min(edgesY), max(edgesY), max(edgesY)];
+    baseZ = [0, 0, 0, 0]; % Z-level for the base
+    
+    % Plot light grey base
+    patch(baseX, baseY, baseZ, [0.7, 0.7, 0.7], 'FaceAlpha', 0.5, 'EdgeColor', 'none');
+
+    title(['\sigma = ', num2str(sigma)], 'FontSize',13, 'FontWeight','bold');
+    xlabel('Y1', 'FontSize',13, 'FontWeight','bold');
+    ylabel('Y2', 'FontSize',13, 'FontWeight','bold');
+    set(gca, 'FontSize',13, 'FontWeight','bold');
+    colorbar;
+    view(2); % 2D view
+
+    % 3D view of the histogram
+    nexttile;
+    h = histogram2('XBinEdges', edgesX, 'YBinEdges', edgesY, 'BinCounts', counts, ...
+                   'FaceColor', 'flat');
+    hold on;
+    
+    % Get histogram base coordinates and plot grey patch
+    baseX = [min(edgesX), max(edgesX), max(edgesX), min(edgesX)];
+    baseY = [min(edgesY), min(edgesY), max(edgesY), max(edgesY)];
+    baseZ = [0, 0, 0, 0]; % Z-level for the base
+    
+    % Plot light grey base
+    patch(baseX, baseY, baseZ, [0.7, 0.7, 0.7], 'FaceAlpha', 0.5, 'EdgeColor', 'none');
+    
+    title(['\sigma = ', num2str(sigma)], 'FontSize',13, 'FontWeight','bold');
+    xlabel('Y1', 'FontSize',13, 'FontWeight','bold');
+    ylabel('Y2', 'FontSize',13, 'FontWeight','bold');
+    zlabel('Frequency', 'FontSize',13, 'FontWeight','bold');
+    set(gca, 'FontSize',13, 'FontWeight','bold');
+    colorbar;
+    view(3); % 3D view
+    hold off;
+end
+
+% Parameters for histogram
+num_bins = 100; % Number of bins for Y1 and Y2 histograms
+
+% Loop through each sigma case
+for j = 1:length(sigma_values)
+    % Extract Y1 and Y2 data for the current sigma
+    Y1_sigma = Y1(:, j);
+    Y2_sigma = Y2(:, j);
+    
+    % Define bin edges based on the range of the data for current sigma
+    edgesY1 = linspace(min(Y1_sigma), max(Y1_sigma), num_bins + 1);
+    edgesY2 = linspace(min(Y2_sigma), max(Y2_sigma), num_bins + 1);
+    
+    % Compute 2D histogram counts
+    [counts, ~, ~] = histcounts2(Y1_sigma, Y2_sigma, edgesY1, edgesY2);
+    
+    % Find the most frequent bin for Y1 and Y2
+    [max_count, max_idx] = max(counts(:));
+    [row, col] = ind2sub(size(counts), max_idx);
+    
+    % Determine the most frequent Y1 and Y2 values based on bin centers
+    most_frequent_Y1 = (edgesY1(row) + edgesY1(row + 1)) / 2;
+    most_frequent_Y2 = (edgesY2(col) + edgesY2(col + 1)) / 2;
+    
+    % Display results for the current sigma value
+    fprintf('For sigma = %.2f:\n', sigma_values(j));
+    fprintf('Most frequent Y1 value: %.4f\n', most_frequent_Y1);
+    fprintf('Most frequent Y2 value: %.4f\n', most_frequent_Y2);
+    fprintf('Frequency: %d\n\n', max_count);
+end
+
+
+
+% -------------------- Stability evaluatation -----------------------------
+
+% Define the functions f1 and f2
+f1 = @(x1, x2) theta3 * (x1 + x2 - (1/3) * x1^3 + theta4);
+f2 = @(x1, x2) - (1/theta3) * (x1 + theta2 * x2 - theta1);
+
+% Analytical Jacobian at the equilibrium point
+df1_dx1 = theta3 * (1 - x1_eq^2); % ∂f1/∂x1
+df1_dx2 = theta3;                  % ∂f1/∂x2
+df2_dx1 = -1/theta3;               % ∂f2/∂x1
+df2_dx2 = -theta2/theta3;          % ∂f2/∂x2
+J_analytical = [df1_dx1, df1_dx2; df2_dx1, df2_dx2];
+
+% Initialize variables for storing errors
+deltas1 = logspace(-10, 0, 100); % Range of delta from 1e-10 to 1
+relative_errors1 = zeros(size(deltas1));
+
+% Loop over each delta to compute the numerical Jacobian and error
+for i = 1:length(deltas1)
+    delta1 = deltas1(i);
+
+    % Numerical Jacobian using finite differences
+    J_numerical1 = zeros(2, 2);
+
+    % Partial derivative of f1 w.r.t. x1
+    J_numerical1(1, 1) = (f1(x1_eq + delta1, x2_eq) - f1(x1_eq, x2_eq)) / delta1;
+
+    % Partial derivative of f1 w.r.t. x2
+    J_numerical1(1, 2) = (f1(x1_eq, x2_eq + delta1) - f1(x1_eq, x2_eq)) / delta1;
+
+    % Partial derivative of f2 w.r.t. x1
+    J_numerical1(2, 1) = (f2(x1_eq + delta1, x2_eq) - f2(x1_eq, x2_eq)) / delta1;
+
+    % Partial derivative of f2 w.r.t. x2
+    J_numerical1(2, 2) = (f2(x1_eq, x2_eq + delta1) - f2(x1_eq, x2_eq)) / delta1;
+
+    % Calculate the relative error in the norm
+    relative_errors1(i) = norm(J_analytical - J_numerical1) / norm(J_analytical);
+end
+
+% Plot the relative error
+figure;
+loglog(deltas1, relative_errors1, '-o'); % Use log-log plot for better scale visualization
+xlabel('\delta (Finite Difference Step Size)','FontSize',13, 'FontWeight','bold');
+ylabel('Relative Error in Jacobian Norm','FontSize',13, 'FontWeight','bold');
+set(gca, 'FontSize',13, 'FontWeight','bold');
+
+
+% Parameters
+theta1 = 0.7;
+theta2 = 0.8;
+theta3 = 3.0;
+theta4 = -0.34;
+sigma_values = [0, 0.10, 0.20, 0.30, 0.40]; % Different noise levels
+delta1 = 2^(-9); % Time step
+T = 100; % Total simulation time
+N = T / delta1; % Number of steps
+initial_conditions = [-1.9; 1.2]; % Initial conditions Y1_0 and Y2_0
+time_vector = linspace(0, T, N+1);
+rng(2) % For reproduction
+
+
+% ------------------------ Hopf bifurcation -------------------------------
+
+% Constant value
+c = 0.010011;
+
+% Storage for results
+Y1 = zeros(N+1, 1);
+Y2 = zeros(N+1, 1);
+
+
+
+Y = initial_conditions;
+Y1(:, 1) = Y(1);
+Y2(:, 1) = Y(2);
+
+% Iterative simulation using Euler-Maruyama method
+for n = 1:N
+    % Equations (3a) and (3b) for Euler-Maruyama approximation
+    Y1(n+1, 1) = Y1(n, 1) + (theta3 * (Y1(n, 1) + Y2(n, 1) - (1/3) * (Y1(n, 1))^3 + theta4) + c) * delta1;
+    Y2(n+1, 1) = Y2(n, 1) - (1/theta3) * (Y1(n, 1) + theta2 * Y2(n, 1) - theta1) * delta1;
+end
+
+
+% Create a joined plot for the first sigma (sigma = 0) in the first two tiles
+figure;
+plot(Y1(:, 1), Y2(:, 1), 'k');
+title('c = 0.010011');
+xlabel('Y1', 'FontSize',13, 'FontWeight','bold');
+ylabel('Y2', 'FontSize',13, 'FontWeight','bold');
+set(gca, 'FontSize',13, 'FontWeight','bold')
+
+% Save file
+current_file = 'Part1.m';
+new_directory = '/home/olivermussmann/Documents/GitHub/02427-AdvancedTimeSeries-CEX3/matlab_code/P1';
+copyfile(current_file, new_directory);
