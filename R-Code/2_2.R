@@ -8,7 +8,7 @@ library(ctsmTMB)
 # Load Data
 ############################################################
 
-data = read.csv("~/Documents/Uni/Advanced TSA/CompEx3_E18/ex2_overflow copy.csv")
+data = read.csv("C:/Users/lucas/Documents/GitHub/02427-AdvancedTimeSeries-CEX3/R-code/ex1_rainfallrunoff copy.csv")
 data
 
 
@@ -70,7 +70,7 @@ pred_1k <-model$predict(.data,k.ahead=1)
 model$summary(correlation = TRUE)
 summary(fit)
 
-plot(fit, main="")
+plot(fit)
 par(mfrow = c(2, 1))
 plot(.data$t, .data$y, type = "l", col = "black", 
      ylab = "Stormwater", xlab = "", main = "Stormwater and Rainfall over time, event 5", xaxt = "n")
@@ -177,11 +177,7 @@ residual_plot <- ggplot(data.frame(t = .data$t, residuals = residuals), aes(x = 
 
 print(residual_plot)
 
-
-
 # Plot sigmoid
-
-
 a <- 19.93198693  # Adjust 'a' as desired
 b <- 6.89051683  # Adjust 'b' as desired
 

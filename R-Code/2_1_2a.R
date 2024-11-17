@@ -4,7 +4,11 @@ library(dplyr)
 library(reshape2)
 library(ctsmTMB)
 
-data = read.csv("~/Documents/Uni/Advanced TSA/CompEx3_E18/ex1_rainfallrunoff copy.csv")
+############################################################
+# Load Data
+############################################################
+
+data = read.csv("C:/Users/lucas/Documents/GitHub/02427-AdvancedTimeSeries-CEX3/R-code/ex1_rainfallrunoff copy.csv")
 data
 
 # Create data
@@ -14,6 +18,11 @@ data
   y = as.numeric(data$stormwater)  # Rename X2 to y here
 )
 .data
+
+
+############################################################
+# Model creation and estimation
+############################################################
 
 # Create model object
 model = ctsmTMB$new()
@@ -235,7 +244,7 @@ model$setParameter(
   sigma_y  = log(c(initial=1e-1, lower=1e-10, upper=30))
   
 )
-model$setInitialState(list(c(0, 0, 0, 0, 0, .data$y[1]), 1e-1 * diag(6)))
+model$setInitialState(list(c(0, 0, 0, 0, 0, .data$y[1]), 1e-1 * diag(7)))
 fit <- model$estimate(data=.data, method="ekf", compile=T)
 cat("Summary for model with", 7, "states:\n")
 print(model$summary(correlation = TRUE))
@@ -272,7 +281,7 @@ model$setParameter(
   sigma_y  = log(c(initial=1e-1, lower=1e-10, upper=30))
   
 )
-model$setInitialState(list(c(0, 0, 0, 0, 0, .data$y[1]), 1e-1 * diag(6)))
+model$setInitialState(list(c(0, 0, 0, 0, 0, .data$y[1]), 1e-1 * diag(8)))
 fit <- model$estimate(data=.data, method="ekf", compile=T)
 cat("Summary for model with", 8, "states:\n")
 print(model$summary(correlation = TRUE))

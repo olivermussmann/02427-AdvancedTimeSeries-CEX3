@@ -8,7 +8,7 @@ library(ctsmTMB)
 # Data simulation
 ############################################################
 
-data = read.csv("~/Documents/Uni/Advanced TSA/CompEx3_E18/ex1_rainfallrunoff copy.csv")
+data = read.csv("C:/Users/lucas/Documents/GitHub/02427-AdvancedTimeSeries-CEX3/R-code/ex1_rainfallrunoff copy.csv")
 data
 
 
@@ -118,7 +118,7 @@ print(correlation_matrix)
 # Check parameter estimates against truth
 p0 = fit$par.fixed
 p0
-cbind(c(exp(p0[1]),p0[2],exp(p0[3]),exp(p0[4])), pars)
+
 
 # Create plot of one-step predictions, simulated states and observations
 t.est = fit$states$mean$prior$t
@@ -181,3 +181,4 @@ patchwork::wrap_plots(plot1, plot2, plot3, ncol=1)
 
 # Plot one-step-ahead residual analysis using the command below
 # plot(fit)
+
