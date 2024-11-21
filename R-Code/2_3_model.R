@@ -29,7 +29,8 @@ model$setModelname("model_2_3_2")
 model$addSystem(
   dG ~ A * R * dt - (n/K1) * G * dt + sigma * dw1,
   dC ~ (n/K1)* G * dt - (n/K2) * C * dt - 1/(1+exp(-a*(C - b))) * C * dt + sigma * dw2,
-  dS ~ 1/(1+exp(-a*(C - b))) * C * dt - P * dt + sigma * dw3
+  dT ~ 1/(1+exp(-a*(C - b))) * C * dt - (n/K3) * T * dt + sigma * dw3,
+  dS ~ (n/K3) * T * dt - P * dt + sigma * dw4
 )
 
 # Observation equations
@@ -54,86 +55,56 @@ model$setParameter(
   A = c(initial = 10, lower = 0, upper = 100),
   K1 = c(initial = 4, lower = 1, upper = 100),
   K2 = c(initial = 6, lower = 1, upper = 100),
+  K3 = c(initial = 6, lower = 1, upper = 100),
   sigma = log(c(initial = 0.5, lower = 1e-10, upper = 10)),
   sigma_y = log(c(initial = 1, lower = 1, upper = 10))
 )
 
 # Initial state
 model$setInitialState(
-  list(c(.data1$R[1], .data1$P[1], .data1$y[1]), 1e-1 * diag(3))
+  list(c(.data1$R[1], .data1$P[1], .data1$P[1], .data1$y[1]), 1e-1 * diag(4))
 )
 
 # Estimate parameters
-fit <- model$estimate(data = .data1, method = "ekf", compile = TRUE, ode.timestep = 0.1)
+#fit <- model$estimate(data = .data1, method = "ekf", compile = TRUE, ode.timestep = 0.1)
+fit <- model$estimate(data = .data1, method = "ekf", compile = TRUE)
 
 # Summary and plots
 model$summary(correlation = TRUE)
 summary(fit)
 plot(fit)
 
+pred_1k <-model$predict(.data1,k.ahead=16)
+
+pred_1k$states$S
 
 
 
+# Set up a 2-row layout
+par(mfrow = c(3, 1))
 
-############################################################
-# First Model
-############################################################
+# Determine a common y-axis range
+y_range <- range(c(.data1$y, pred_1k$states$S), na.rm = TRUE)
+y_range <- c(0, 30)
 
-# Create model object
-model = ctsmTMB$new()
+# Plot 1: Rainwater over time (black line)
+plot(.data1$t, .data1$R, type = "l", col = "black",  # Use common y-axis range
+     ylab = "Stormwater", xlab = "Time (hours)", 
+     main = "Observed Rainwater over time (Event 1)", xaxt = "n")
+axis(1, at = seq(0, max(.data1$t), by = 2), labels = seq(0, max(.data1$t), by = 2))
 
-# Set name of model (and the created .cpp file)
-model$setModelname("model_2_3_2")
+# Plot 2: Stormwater over time (black line)
+plot(.data1$t, .data1$y, type = "l", col = "black", 
+     ylim = y_range,  # Use common y-axis range
+     ylab = "Stormwater", xlab = "Time (hours)", 
+     main = "Observed Stormwater over time (Event 1)", xaxt = "n")
+axis(1, at = seq(0, max(.data1$t), by = 2), labels = seq(0, max(.data1$t), by = 2))
 
-# Add system equations
-model$addSystem(
-  dG ~ A * R * dt - (n/K1) * G * dt + sigma * dw1,
-  dC ~ (n/K1)* G * dt - (n/K2) * C * dt - 1/(1+exp(-a*(C - b))) * C * dt + sigma * dw2,
-  dS ~ 1/(1+exp(-a*(C - b))) * C * dt - P * dt + sigma * dw3
-)
-
-
-# Add observation equations
-model$addObs(
-  #y ~ x
-  y ~ S
-)
-
-# Set observation equation variances
-model$setVariance(
-  y ~ sigma_y^2
-)
-
-# Add vector input
-#model$addInput(u)
-model$addInput(R)
-model$addInput(P)
-
-# Specify parameter initial values and lower/upper bounds in estimation
-model$setParameter(
-  n = 2,
-  a = c(initial = 1, lower = -100, upper = 100),
-  b = c(initial = 1, lower = -100, upper = 100),
-  A = c(initial = 1.5, lower = 0, upper = 1000),
-  K1 = c(initial = 1.5, lower = 1, upper = 1000),
-  K2 = c(initial = 1.5, lower = 1, upper = 1000),
-  sigma = log(c(initial = 1, lower = 1e-10, upper = 30)),
-  sigma_y = log(c(initial = 1, lower = 1, upper = 30)) # Increased lower bound to 1
-)
+# Plot 3: Predicted Stormwater (red line)
+plot(pred_1k$states$t.j, pred_1k$states$S, type = "l", col = "red", lty = 2, 
+     ylim = y_range,  # Use the same y-axis range
+     ylab = "Stormwater", xlab = "Time (hours)", 
+     main = "Predicted Stormwater over time (Event 1)", xaxt = "n")
+axis(1, at = seq(0, max(.data1$t), by = 2), labels = seq(0, max(.data1$t), by = 2))
 
 
-# Set initial state mean and covariance
-model$setInitialState(
-  list(c(.data1$R[1], .data1$P[1], .data1$y[1]), 1e-1 * diag(3))
-)
-
-# Carry out estimation with default settings (extended kalman filter)
-fit <- model$estimate(data = .data1, method = "ekf", compile = TRUE, ode.timestep =0.1)
-
-model$summary(correlation = TRUE)
-summary(fit)
-
-plot(fit)
-
-fit$nll
-  
