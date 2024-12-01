@@ -4,157 +4,78 @@ library(dplyr)
 library(reshape2)
 library(ctsmTMB)
 library(gridExtra)
+library(cowplot)
 
 ############################################################
 # Load Data
 ############################################################
 
-data = read.csv("~/Documents/Uni/Advanced TSA/CompEx3_E18/ex3_largecase copy.csv")
-start_time <- as.POSIXct("2018-08-12 04:00:00")
+data <- read.csv("C:/Users/lucas/Documents/GitHub/02427-AdvancedTimeSeries-CEX3/ex3_largecase copy.csv")
 
-# Calculate hours since the start time
-data$hours_since_start <- as.numeric(difftime(data$Timestamp, start_time, units = "hours"))
+# Convert 'Timestamp' to proper datetime format
+data$Timestamp <- as.POSIXct(data$Timestamp, format = "%Y-%m-%d %H:%M:%S", tz = "UTC")
 
+# Separate the data by EventID
+events <- unique(data$Event_ID)
 
-event1_data <- data[which(data$Event_ID==1),]
-event1_data$hours_since_start <- as.numeric(difftime(event1_data$Timestamp, min(event1_data$Timestamp), units = "hours"))
-event1_data # 4-18
+# List to store plots for all events
+all_plots <- list()
 
-event2_data <- data[which(data$Event_ID==2),]
-event2_data$hours_since_start <- as.numeric(difftime(event2_data$Timestamp, min(event2_data$Timestamp), units = "hours"))
-event2_data # 7-21
+# Loop through each Event and create subplots
+for (event in events) {
+  event_data <- data %>% filter(Event_ID == event)
+  
+  # Plot Rainfall
+  rainfall_plot <- ggplot(event_data, aes(x = Timestamp, y = Rainfall)) +
+    geom_line(color = "blue") +
+    scale_x_datetime(date_breaks = "6 hours", date_labels = "%H:%M") +
+    scale_y_continuous(expand = expansion(mult = c(0.1, 0.1))) +
+    labs(title = paste("Rainfall - Event", event), x = "Time", y = "Rainfall (µm/min)") +
+    theme_minimal()
+  
+  # Plot Pumpflow
+  pumpflow_plot <- ggplot(event_data, aes(x = Timestamp, y = Pumpflow)) +
+    geom_line(color = "red") +
+    scale_x_datetime(date_breaks = "6 hours", date_labels = "%H:%M") +
+    scale_y_continuous(expand = expansion(mult = c(0.1, 0.1))) +
+    labs(title = paste("Pumpflow - Event", event), x = "Time", y = "Pumpflow (m^3/min)") +
+    theme_minimal()
+  
+  # Plot Volume
+  volume_plot <- ggplot(event_data, aes(x = Timestamp, y = Volume)) +
+    geom_line(color = "green") +
+    scale_x_datetime(date_breaks = "6 hours", date_labels = "%H:%M") +
+    scale_y_continuous(expand = expansion(mult = c(0.1, 0.1))) +
+    labs(title = paste("Volume - Event", event), x = "Time", y = "Volume (m^3)") +
+    theme_minimal()
+  
+  # Store the plots for this event
+  all_plots <- append(all_plots, list(rainfall_plot, pumpflow_plot, volume_plot))
+}
 
-event3_data <- data[which(data$Event_ID==3),]
-event3_data$hours_since_start <- as.numeric(difftime(event3_data$Timestamp, min(event3_data$Timestamp), units = "hours"))
-event3_data # 4-18
+# Combine all plots into a grid with consistent row heights
+combined_plot <- plot_grid(
+  plotlist = all_plots,
+  ncol = 3,
+  align = "v", # Align vertically for consistent heights
+  axis = "l"   # Keep left alignment of axes
+)
 
-event4_data <- data[which(data$Event_ID==4),]
-event4_data$hours_since_start <- as.numeric(difftime(event4_data$Timestamp, min(event4_data$Timestamp), units = "hours"))
-event4_data # 21-11
+# Display and save the combined plot
+print(combined_plot)
 
-event5_data <- data[which(data$Event_ID==5),]
-event5_data$hours_since_start <- as.numeric(difftime(event5_data$Timestamp, min(event5_data$Timestamp), units = "hours"))
-event5_data # 00-14
-
-event6_data <- data[which(data$Event_ID==6),]
-event6_data$hours_since_start <- as.numeric(difftime(event6_data$Timestamp, min(event6_data$Timestamp), units = "hours"))
-event6_data # 12 - 02
-
-############################################################
-# Plot Data
-############################################################
-
-par(mfrow = c(2, 1))
-plot(event1_data$hours_since_start, event1_data$Volume, type = "l", col = "black", 
-     ylab = "Volume", xlab = "", main = "Volume and Rainfall over time, event 1", xaxt = "n")
-axis(1, at = seq(0, max(event1_data$hours_since_start), by = 2), labels = seq(0, max(event1_data$hours_since_start), by = 2))
-plot(event1_data$hours_since_start, event1_data$Rainfall, type = "l", col = "black", 
-     ylab = "Rainfall", xlab = "Time (hours)", main = "", xaxt = "n")
-axis(1, at = seq(0, max(event1_data$hours_since_start), by = 2), labels = seq(0, max(event1_data$hours_since_start), by = 2))
-
-par(mfrow = c(2, 1))
-plot(event2_data$hours_since_start, event2_data$Volume, type = "l", col = "black", 
-     ylab = "Volume", xlab = "", main = "Volume and Rainfall over time, event 2", xaxt = "n")
-axis(1, at = seq(0, max(event2_data$hours_since_start), by = 2), labels = seq(0, max(event2_data$hours_since_start), by = 2))
-plot(event2_data$hours_since_start, event2_data$Rainfall, type = "l", col = "black", 
-     ylab = "Rainfall", xlab = "Time (hours)", main = "", xaxt = "n")
-axis(1, at = seq(0, max(event2_data$hours_since_start), by = 2), labels = seq(0, max(event2_data$hours_since_start), by = 2))
-
-par(mfrow = c(2, 1))
-plot(event3_data$hours_since_start, event3_data$Volume, type = "l", col = "black", 
-     ylab = "Volume", xlab = "", main = "Volume and Rainfall over time, event 3", xaxt = "n")
-axis(1, at = seq(0, max(event3_data$hours_since_start), by = 2), labels = seq(0, max(event3_data$hours_since_start), by = 2))
-plot(event3_data$hours_since_start, event3_data$Rainfall, type = "l", col = "black", 
-     ylab = "Rainfall", xlab = "Time (hours)", main = "", xaxt = "n")
-axis(1, at = seq(0, max(event3_data$hours_since_start), by = 2), labels = seq(0, max(event3_data$hours_since_start), by = 2))
-
-par(mfrow = c(2, 1))
-plot(event4_data$hours_since_start, event4_data$Volume, type = "l", col = "black", 
-     ylab = "Volume", xlab = "", main = "Volume and Rainfall over time, event 4", xaxt = "n")
-axis(1, at = seq(0, max(event4_data$hours_since_start), by = 2), labels = seq(0, max(event4_data$hours_since_start), by = 2))
-plot(event4_data$hours_since_start, event4_data$Rainfall, type = "l", col = "black", 
-     ylab = "Rainfall", xlab = "Time (hours)", main = "", xaxt = "n")
-axis(1, at = seq(0, max(event4_data$hours_since_start), by = 2), labels = seq(0, max(event4_data$hours_since_start), by = 2))
-
-
-par(mfrow = c(2, 1))
-plot(event5_data$hours_since_start, event5_data$Volume, type = "l", col = "black", 
-     ylab = "Volume", xlab = "", main = "Volume and Rainfall over time, event 5", xaxt = "n")
-axis(1, at = seq(0, max(event5_data$hours_since_start), by = 2), labels = seq(0, max(event5_data$hours_since_start), by = 2))
-plot(event5_data$hours_since_start, event5_data$Rainfall, type = "l", col = "black", 
-     ylab = "Rainfall", xlab = "Time (hours)", main = "", xaxt = "n")
-axis(1, at = seq(0, max(event5_data$hours_since_start), by = 2), labels = seq(0, max(event5_data$hours_since_start), by = 2))
-
-
-par(mfrow = c(2, 1))
-plot(event6_data$hours_since_start, event6_data$Volume, type = "l", col = "black", 
-     ylab = "Volume", xlab = "", main = "Volume and Rainfall over time, event 6", xaxt = "n")
-axis(1, at = seq(0, max(event6_data$hours_since_start), by = 2), labels = seq(0, max(event6_data$hours_since_start), by = 2))
-plot(event6_data$hours_since_start, event6_data$Rainfall, type = "l", col = "black", 
-     ylab = "Rainfall", xlab = "Time (hours)", main = "", xaxt = "n")
-axis(1, at = seq(0, max(event6_data$hours_since_start), by = 2), labels = seq(0, max(event6_data$hours_since_start), by = 2))
+ggsave("C:/Users/lucas/Documents/GitHub/02427-AdvancedTimeSeries-CEX3/combined_plot_2_3_1.png",
+       plot = combined_plot, width = 8.27, height = 11.69, units = "in")
 
 
 
-# Set up the plotting area to have 6 rows and 2 columns
-pdf("combined_plot_2_3.pdf", width = 8, height = 12)  # Adjust dimensions as needed
-par(mfrow = c(6, 2), mar = c(4, 4, 2, 1))  # Adjust margins for better spacing
 
-# Event 1: Volume and Rainfall
-plot(event1_data$hours_since_start, event1_data$Volume, type = "l", col = "black", 
-     ylab = "Volume", xlab = "", main = "Event 1 - Volume", xaxt = "n")
-axis(1, at = seq(0, max(event1_data$hours_since_start), by = 2), labels = seq(0, max(event1_data$hours_since_start), by = 2))
 
-plot(event1_data$hours_since_start, event1_data$Rainfall, type = "l", col = "black", 
-     ylab = "Rainfall", xlab = "Time (hours)", main = "Event 1 - Rainfall", xaxt = "n")
-axis(1, at = seq(0, max(event1_data$hours_since_start), by = 2), labels = seq(0, max(event1_data$hours_since_start), by = 2))
 
-# Event 2: Volume and Rainfall
-plot(event2_data$hours_since_start, event2_data$Volume, type = "l", col = "black", 
-     ylab = "Volume", xlab = "", main = "Event 2 - Volume", xaxt = "n")
-axis(1, at = seq(0, max(event2_data$hours_since_start), by = 2), labels = seq(0, max(event2_data$hours_since_start), by = 2))
 
-plot(event2_data$hours_since_start, event2_data$Rainfall, type = "l", col = "black", 
-     ylab = "Rainfall", xlab = "Time (hours)", main = "Event 2 - Rainfall", xaxt = "n")
-axis(1, at = seq(0, max(event2_data$hours_since_start), by = 2), labels = seq(0, max(event2_data$hours_since_start), by = 2))
 
-# Event 3: Volume and Rainfall
-plot(event3_data$hours_since_start, event3_data$Volume, type = "l", col = "black", 
-     ylab = "Volume", xlab = "", main = "Event 3 - Volume", xaxt = "n")
-axis(1, at = seq(0, max(event3_data$hours_since_start), by = 2), labels = seq(0, max(event3_data$hours_since_start), by = 2))
 
-plot(event3_data$hours_since_start, event3_data$Rainfall, type = "l", col = "black", 
-     ylab = "Rainfall", xlab = "Time (hours)", main = "Event 3 - Rainfall", xaxt = "n")
-axis(1, at = seq(0, max(event3_data$hours_since_start), by = 2), labels = seq(0, max(event3_data$hours_since_start), by = 2))
 
-# Event 4: Volume and Rainfall
-plot(event4_data$hours_since_start, event4_data$Volume, type = "l", col = "black", 
-     ylab = "Volume", xlab = "", main = "Event 4 - Volume", xaxt = "n")
-axis(1, at = seq(0, max(event4_data$hours_since_start), by = 2), labels = seq(0, max(event4_data$hours_since_start), by = 2))
-
-plot(event4_data$hours_since_start, event4_data$Rainfall, type = "l", col = "black", 
-     ylab = "Rainfall", xlab = "Time (hours)", main = "Event 4 - Rainfall", xaxt = "n")
-axis(1, at = seq(0, max(event4_data$hours_since_start), by = 2), labels = seq(0, max(event4_data$hours_since_start), by = 2))
-
-# Event 5: Volume and Rainfall
-plot(event5_data$hours_since_start, event5_data$Volume, type = "l", col = "black", 
-     ylab = "Volume", xlab = "", main = "Event 5 - Volume", xaxt = "n")
-axis(1, at = seq(0, max(event5_data$hours_since_start), by = 2), labels = seq(0, max(event5_data$hours_since_start), by = 2))
-
-plot(event5_data$hours_since_start, event5_data$Rainfall, type = "l", col = "black", 
-     ylab = "Rainfall", xlab = "Time (hours)", main = "Event 5 - Rainfall", xaxt = "n")
-axis(1, at = seq(0, max(event5_data$hours_since_start), by = 2), labels = seq(0, max(event5_data$hours_since_start), by = 2))
-
-# Event 6: Volume and Rainfall
-plot(event6_data$hours_since_start, event6_data$Volume, type = "l", col = "black", 
-     ylab = "Volume", xlab = "", main = "Event 6 - Volume", xaxt = "n")
-axis(1, at = seq(0, max(event6_data$hours_since_start), by = 2), labels = seq(0, max(event6_data$hours_since_start), by = 2))
-
-plot(event6_data$hours_since_start, event6_data$Rainfall, type = "l", col = "black", 
-     ylab = "Rainfall", xlab = "Time (hours)", main = "Event 6 - Rainfall", xaxt = "n")
-axis(1, at = seq(0, max(event6_data$hours_since_start), by = 2), labels = seq(0, max(event6_data$hours_since_start), by = 2))
-
-dev.off()
 
 
 ############################################################
