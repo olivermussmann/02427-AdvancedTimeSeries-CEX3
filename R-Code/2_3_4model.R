@@ -7,22 +7,22 @@ library(gridExtra)
 
 data = read.csv("C:/Users/lucas/Documents/GitHub/02427-AdvancedTimeSeries-CEX3/ex3_largecase copy.csv")
 
-event1_data <- data[which(data$Event_ID==1),]
-event1_data$hours_since_start <- as.numeric(difftime(event1_data$Timestamp, min(event1_data$Timestamp), units = "hours"))
-event1_data # 4-18
+full_data <- data
+full_data$hours_since_start <- as.numeric(difftime(full_data$Timestamp, min(full_data$Timestamp), units = "hours"))
+full_data
 
 # Scale the data
 scale_factor <- 1/2500
 .data1 <- data.frame(
-  t = as.numeric(difftime(event1_data$Timestamp, min(event1_data$Timestamp), units = "hours")),
-  R = as.numeric(event1_data$Rainfall),
-  P = as.numeric(event1_data$Pumpflow) * scale_factor * 60, # Scale and convert to hourly
-  y = as.numeric(event1_data$Volume) * scale_factor         # Scale volume
+  t = as.numeric(difftime(full_data$Timestamp, min(full_data$Timestamp), units = "hours")),
+  R = as.numeric(full_data$Rainfall),
+  P = as.numeric(full_data$Pumpflow) * scale_factor * 60, # Scale and convert to hourly
+  y = as.numeric(full_data$Volume) * scale_factor         # Scale volume
 )
 
 # Model setup
 model <- ctsmTMB$new()
-#model$setModelname("model_2_3_1")
+model$setModelname("model_2_3_4")
 
 # System equations
 model$addSystem(
@@ -48,13 +48,13 @@ model$addInput(P)
 
 # Parameter initial values and bounds
 model$setParameter(
-  n = 2,
-  a = c(initial = 10, lower = 0, upper = 70),
-  b = c(initial = 5, lower = 0, upper = 10),
-  A = c(initial = 10, lower = 0, upper = 100),
-  K = c(initial = 4, lower = 0.5, upper = 100),
-  sigma = log(c(initial = 0.5, lower = 1e-10, upper = 4)),
-  sigma_y = log(c(initial = 1, lower = 1, upper = 4))
+  n = c(initial = 2, lower = 0.1, upper = 10),
+  a = c(initial = 5, lower = 0, upper = 50),
+  b = c(initial = 3, lower = 0, upper = 10),
+  A = c(initial = 1, lower = 0, upper = 20),
+  K = c(initial = 5, lower = 1, upper = 100),
+  sigma = log(c(initial = 1, lower = 1e-10, upper = 1)),
+  sigma_y = log(c(initial = 1, lower = 1, upper = 5))
 )
 #
 # Initial state
