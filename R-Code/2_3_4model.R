@@ -1,83 +1,3 @@
-# Load necessary libraries
-library(ggplot2)
-library(patchwork)
-library(dplyr)
-library(reshape2)
-library(ctsmTMB)
-library(gridExtra)
-
-data = read.csv("C:/Users/agent/OneDrive/Skrivebord/02427-AdvancedTimeSeries-CEX3/ex3_largecase copy.csv")
-full_data <- data
-full_data$Timestamp <- seq(0, nrow(full_data) - 1)
-
-
-# Plot Rainfall
-p1 <- ggplot(full_data, aes(x = Timestamp, y = Rainfall)) +
-  geom_line(color = "blue") +  # Specify line color
-  ggtitle("Rainfall Over Time") +
-  xlab("Time") +
-  ylab("Rainfall (mm)") +
-  theme_minimal()
-
-# Plot Pumpflow
-p2 <- ggplot(full_data, aes(x = Timestamp, y = Pumpflow)) +
-  geom_line(color = "red") +  # Specify line color
-  ggtitle("Pumpflow Over Time") +
-  xlab("Time") +
-  ylab("Pumpflow") +
-  theme_minimal()
-
-# Plot Volume
-p3 <- ggplot(full_data, aes(x = Timestamp, y = Volume)) +
-  geom_line(color = "green") +  # Specify line color
-  ggtitle("Volume Over Time") +
-  xlab("Time") +
-  ylab("Volume") +
-  theme_minimal()
-
-# Combine plots using gridExtra
-grid.arrange(p1, p2, p3, nrow = 3)
-
-# Scale the data
-scale_factor <- 1/2500
-data_fit <- data.frame(
-  t = as.numeric(full_data$Timestamp),
-  R = as.numeric(full_data$Rainfall),
-  P = as.numeric(full_data$Pumpflow) * scale_factor * 60, # Scale and convert to hourly
-  y = as.numeric(full_data$Volume) * scale_factor         # Scale volume
-)
-
-
-
-
-
-
-# Model setup
-model <- ctsmTMB$new()
-model$setModelname("stormwater_model10")
-
-# System equations
-model$addSystem(
-  dG ~ A * R * dt - (n/K) * G * dt + sigma* dw1,
-  dC ~ (n/K) * G * dt - (n/K) * C * dt - 1 / (1 + exp(-a * (C - b))) * C * dt + sigma * dw2,
-  dT ~ 1 / (1 + exp(-a * (C - b))) * C * dt - (n/K) * T * dt + sigma * dw3,
-  dS ~ (n/K) * T * dt - P * dt + sigma * dw4
-)
-
-# Observation equations
-model$addObs(
-  y ~ S
-)
-
-# Observation variance - Softplus
-model$setVariance(
-  y ~ (1 + exp(a1 + a2 * R + a3 * P))^2 + sigma_y^2
-)
-
-# Add inputs
-model$addInput(R)
-model$addInput(P)
-
 # Parameter initial values and bounds
 # Load necessary libraries
 library(ggplot2)
@@ -135,14 +55,14 @@ data_fit <- data.frame(
 
 # Model setup
 model <- ctsmTMB$new()
-model$setModelname("stormwater_model11")
+model$setModelname("stormwater_model15")
 
 # System equations
 model$addSystem(
-  dG ~ A * R * dt - (n/K) * G * dt + sigma* dw1,
-  dC ~ (n/K) * G * dt - (n/K) * C * dt - 1 / (1 + exp(-a * (C - b))) * C * dt + sigma * dw2,
-  dT ~ 1 / (1 + exp(-a * (C - b))) * C * dt - (n/K) * T * dt + sigma * dw3,
-  dS ~ (n/K) * T * dt - P * dt + sigma * dw4
+  dG ~ A * R * dt - (n/K) * G * dt + sigma_G * dw1,
+  dC ~ (n/K) * G * dt - (n/K) * C * dt - 1 / (1 + exp(-a * (C - b))) * C * dt + sigma_C * dw2,
+  dT ~ 1 / (1 + exp(-a * (C - b))) * C * dt - (n/K) * T * dt + sigma_T * dw3,
+  dS ~ (n/K) * T * dt - P * dt + sigma_S * dw4
 )
 
 # Observation equations
@@ -150,9 +70,9 @@ model$addObs(
   y ~ S
 )
 
-# Observation variance - Softplus
+# Observation variance
 model$setVariance(
-  y ~ (1 + exp(a1 * R + a2 * P))^2 + sigma_y^2
+  y ~ sigma_y^2
 )
 
 # Add inputs
@@ -160,22 +80,20 @@ model$addInput(R)
 model$addInput(P)
 
 # Parameter initial values and bounds
-
-
 
 #sigma = log(c(initial = 0.5, lower = 1e-10, upper = 4)),
 model$setParameter(
   n = 2,
-  a = c(initial = 2, lower = 0.1, upper = 50),
-  b = c(initial = 2, lower = 0.1, upper = 50),
-  A = c(initial = 3, lower = 0.1, upper = 50),
-  K = c(initial = 25, lower = 10, upper = 100),
-  a1 = c(initial = 1, lower = -1, upper = 5),
-  a2 = c(initial = 1, lower = -1, upper = 5),
-  sigma = log(c(initial = 1e-3, lower = 1e-3, upper = 2)),
-  sigma_y = log(c(initial = 1e-3, lower = 1e-3, upper = 2))
+  a = c(initial = 4.5, lower = 0.1, upper = 50),
+  b = c(initial = 12, lower = 0.1, upper = 25),
+  A = c(initial = 0.1, lower = 0.01, upper = 1),
+  K = c(initial = 100, lower = 0.1, upper = 200),
+  sigma_G = log(c(initial = 0.1, lower = 1e-3, upper = 2)),
+  sigma_C = log(c(initial = 0.1, lower = 1e-3, upper = 2)),
+  sigma_T = log(c(initial = 0.1, lower = 1e-3, upper = 2)),
+  sigma_S = log(c(initial = 0.1, lower = 1e-3, upper = 2)),
+  sigma_y = log(c(initial = 0.1, lower = 1e-2, upper = 2))
 )
-
 #
 # Initial state
 model$setInitialState(
